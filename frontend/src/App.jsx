@@ -1,122 +1,177 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  Badge,
+  Card,
+  CardBody,
+  CardSubtitle,
+  CardText,
+  CardTitle,
+  Col,
+  Container,
+  Row,
+  Spinner,
+} from 'reactstrap';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [estado, setEstado] = useState(null);
+  const [integrantes, setIntegrantes] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    async function cargarDatos() {
+      try {
+        setCargando(true);
+        setError('');
+
+        const [respuestaHealth, respuestaInfo] = await Promise.all([
+          fetch('http://localhost:3000/api/health'),
+          fetch('http://localhost:3000/api/info'),
+        ]);
+
+        if (!respuestaHealth.ok || !respuestaInfo.ok) {
+          throw new Error('No se pudieron obtener los datos del servidor.');
+        }
+
+        const datosHealth = await respuestaHealth.json();
+        const datosInfo = await respuestaInfo.json();
+
+        setEstado(datosHealth);
+        setIntegrantes(datosInfo.integrantes ?? []);
+      } catch (err) {
+        setError(
+          'No se pudo conectar con el backend. Verifica que el servidor esté activo en el puerto 3000.'
+        );
+      } finally {
+        setCargando(false);
+      }
+    }
+
+    cargarDatos();
+  }, []);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
+    <div className="app">
+      <header className="hero">
+        <Container>
+          <p className="eyebrow">TALLER DE PROGRAMACIÓN WEB</p>
+          <h1>Panel del equipo</h1>
+          <p className="hero-description">
+            Información de los integrantes y estado de nuestra API.
           </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        </Container>
+      </header>
 
-      <div className="ticks"></div>
+      <Container className="contenido">
+        <section className="status-panel">
+          <div>
+            <p className="section-label">ESTADO DEL SERVIDOR</p>
+            <h2>Conexión con el backend</h2>
+            <p className="muted">
+              Endpoint: <code>/api/health</code>
+            </p>
+          </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+          {cargando ? (
+            <Badge color="secondary" pill>
+              <Spinner size="sm" className="me-2" />
+              Consultando...
+            </Badge>
+          ) : estado?.status === 'ok' ? (
+            <Badge color="success" pill>
+              Servidor activo
+            </Badge>
+          ) : (
+            <Badge color="danger" pill>
+              Sin conexión
+            </Badge>
+          )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+          {estado && (
+            <Alert color="success" className="health-message">
+              {estado.mensaje}
+            </Alert>
+          )}
+        </section>
+
+        {error && (
+          <Alert color="danger" className="mt-4">
+            {error}
+          </Alert>
+        )}
+
+        <section className="team-section">
+          <div className="section-heading">
+            <div>
+              <p className="section-label">NUESTRO EQUIPO</p>
+              <h2>Integrantes</h2>
+            </div>
+            <span className="team-count">
+              {integrantes.length} integrantes
+            </span>
+          </div>
+
+          {cargando ? (
+            <div className="loading">
+              <Spinner color="primary" />
+              <p>Cargando información...</p>
+            </div>
+          ) : (
+            <Row>
+              {integrantes.map((integrante, index) => (
+                <Col md="6" lg="4" className="mb-4" key={integrante.carnet}>
+                  <Card className="member-card h-100">
+                    <CardBody>
+                      <div className="member-avatar">
+                        {index + 1}
+                      </div>
+
+                      <CardSubtitle className="member-label">
+                        INTEGRANTE {index + 1}
+                      </CardSubtitle>
+
+                      <CardTitle tag="h3" className="member-title">
+                        Carnet {integrante.carnet}
+                      </CardTitle>
+
+                      <div className="member-detail">
+                        <span>Ciudad</span>
+                        <CardText>{integrante.ciudad}</CardText>
+                      </div>
+
+                      <div className="member-detail">
+                        <span>Carrera</span>
+                        <CardText>{integrante.carrera}</CardText>
+                      </div>
+
+                      <div className="member-detail">
+                        <span>Proyectos</span>
+                        <CardText>
+                          {integrante.proyectos}
+                        </CardText>
+                      </div>
+                    </CardBody>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          )}
+
+          {!cargando && !error && integrantes.length === 0 && (
+            <Alert color="info">
+              No hay integrantes registrados en la API.
+            </Alert>
+          )}
+        </section>
+
+        <footer className="footer">
+          Taller de Programación Web · React + Express
+        </footer>
+      </Container>
+    </div>
+  );
 }
 
-export default App
+export default App;
